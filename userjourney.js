@@ -3,7 +3,7 @@ var webshot = require("webshot");
 var resemble = require("node-resemble-js");
 var dbl = require('./sqlite_con_man');
 
-
+const desktopAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36';
 
 var opts = {
     screenSize: {
@@ -19,21 +19,59 @@ var opts = {
 
 class UserJourney{
     
-    constructor(options){
+    constructor(options,db){
         this.options = options?options:opts;
         this.project = '';
         this.isMobile = '';
         this.runTests = '';
         this.testImg = '';
         this.pivotImg = '';
+        this.diff_img = '';
         this.fileName = '';
         this.QueueName = '';
-        this.filesExist;
+        this.filesExist = [];
         this.project_id;
         this.channelWrapper;
         this.timestamp;
         this.testLocations;
-        this.dbi = new dbl("../app.db");
+        this.dbi = new dbl(db?db:"../app.db");
+    }
+    setup(base_path){
+        var self = this;
+        var imgBsPath = base_path?base_path:'./public/images/';
+        self.fileName = (self.filesExist.pivot) ?
+            imgBsPath + self.project + '/' + self.name + '_' + self.timestamp + '.png' 
+            :imgBsPath + self.project + '/' + self.name + '.png';
+        self.diff_img = imgBsPath + self.project + '/' + name + '_' + timestamp + '_diff.png';
+    }
+    genMessage(opt,mismatch){
+        var msg; 
+        var insert = "insert into log_info(t_id,log_info,log_image) values(";
+        var update = "";
+        var pID = (self.project_id===undefined?0:self.project_id);
+        var 
+        var q= "";
+        switch(opt){
+            case "readdir":
+                msg = "Test Found "+ (self.filesExist.test?"Test Img":"Pivot Img");
+                q =insert,+ pID+",\""+ msg+"\",\""
+                    +self.extractFile(fileFound)+"\")");
+                break ;
+            case "emptydir":
+                msg = "Project created here"
+                q =insert,+ pID+",\""+ msg+"\",\""
+                    +self.extractFile(fileFound)+"\")");
+                break ;
+            case "mismatch":
+                msg = "Image Difference :" + mismatch +"\%.";
+                q=insert,+ pID+",\""+ msg+"\",\""
+                    +self.extractFile(fileFound)+"\")");
+                break ;
+                case "update"
+            default:
+        }
+        this.logToDataBase(q);
+        
     }
     checkFilesP(resolve, reject) {
         let parentDir = this.getParentDir(fileName);
@@ -41,34 +79,34 @@ class UserJourney{
         fs.readdir(parentDir, (err, files) => {
             if (!err) {
                 console.log("listing files");
+                var s = self;
                 files.forEach(file => {
-                    if (file === self.extractFile(self.pivotImg)) {
+                    if (file === self.extractFile(self.pivotImg))
                         self.filesExist["pivot"] = true;
-                    }
-                    if (file === self.extractFile(self.testImg)) {
+                    if (file === self.extractFile(self.testImg)) 
                         self.filesExist["test"] = true;
-                    }
                 });
                 var fileFound = self.filesExist.test ? self.testImg : self.pivotImg;
                 console.log(self.filesExist, extractFile(fileFound),
                     "list file .done");
-                var message = "Test Found "+ (self.filesExist.test?"Pivot Img":"Test Img");
-                self.logToDataBase("insert into log_info(t_id,log_info,log_image) values("
-                                + (project_id===undefined?0:project_id)+",\""
-                                + message+"\",\""
-                                +self.extractFile(fileFound)+"\")");
+//                 var message = "Test Found "+ (self.filesExist.test?"Test Img":"Pivot Img");
+//                 self.logToDataBase("insert into log_info(t_id,log_info,log_image) values("
+//                                 + (self.project_id===undefined?0:self.project_id)+",\""
+//                                 + message+"\",\""
+//                                 +self.extractFile(fileFound)+"\")");
+                self.genMessage("readdir");
                 resolve();
             } else {
                 fs.emptyDir('./public/images/' + self.project + '/', err => {
                     if (err) {
                         console.log("files error", err);
-                        reject(process.exit('0'));
+                        //reject(process.exit('0'));
                     }
-                    var message = "Project created here";
+                    /*var message = "Project created here";
                     logToDataBase("insert into log_info(t_id,log_info,log_image) values("
                                 +self.project_id?self.project_id:0+",\""
-                                + message+"\",\""
-                                + 0 +"\")");
+                                + message+"\",\""  + 0 +"\")")*/;
+                    self.genMessage("emptydir");
                     console.log("Creating Project here", err);
                     resolve();
                 });
@@ -77,9 +115,6 @@ class UserJourney{
     }
     getScreensP (resolve, reject) {
         var self = this;
-        self.fileName = (self.filesExist.pivot) ?
-            './public/images/' + self.project + '/' + self.name + '_' + self.timestamp + '.png' 
-            : './public/images/' + self.project + '/' + self.name + '.png';
 
         try {
             console.log(self.fileName, "attempt for image");
@@ -119,19 +154,16 @@ class UserJourney{
             if (self.filesExist.pivot && self.filesExist.test)
                 resemble(self.pivotImg)
                 .compareTo(self.testImg).ignoreNothing().onComplete(function(data) {
-                    var data_info = "Image Difference Registered:" + data.misMatchPercentage +"\%.";
                     if (data.misMatchPercentage > 5) {
-                        var diff_img = './public/images/' + self.project + '/' + name + '_' + timestamp + '_diff.png';
-                        console.log("name:" + name + ",datafailed:true", diff_img);
-                        data.getDiffImage().pack().pipe(fs.createWriteStream(diff_img));
-                        self.logToDataBase("insert into log_info (t_id,log_info,log_image) values ("+
-                                            self.project_id+",\""+data_info+"\",\""+extractFile(diff_img)+"\")");
+                        console.log("name:" + name + ",datafailed:true", self.diff_img);
+                        data.getDiffImage().pack().pipe(fs.createWriteStream(self.diff_img));
+                        self.genMessage("mismatch",data.misMatchPercentage);
                     } else {
                         console.log("name:" + name + ",datafailed:false");
-                        self.logToDataBase("insert into log_info (t_id,log_info,log_image) values ("+
-                                        self.project_id+",\""+data_info+"\",\""+extractFile(self.testImg)+"\")");
+                        self.genMessage("mismatch",data.misMatchPercentage);
                     }
-                    self.logToDataBase("update test set t_val='" +data.misMatchPercentage + "' where id="+self.project_id+";");
+                    self.logToDataBase("update test set t_val='"                    
+                        +data.misMatchPercentage + "' where id="+self.project_id+";");
 
                 });
             else
