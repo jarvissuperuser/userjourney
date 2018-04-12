@@ -142,14 +142,14 @@ class UserJourney{
         });
     }
     getScreensP (resolve, reject) {
-        var self = this;
+        var self = selfer;
 
         try {
             console.log(self.fileName, "attempt for image");
             webshot(self.testLocations, self.fileName, self.options, function(err) {
                 console.log("img error or rundiff");
                 if (err) {
-                    console.log(err);
+                    console.log(err.trace);
                     reject(err);
                 }
                 console.log("Building test cases", self.QueueName);
