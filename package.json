@@ -19,5 +19,9 @@
   "bugs": {
     "url": "https://github.com/jarvissuperuser/userjourney/issues"
   },
-  "homepage": "https://github.com/jarvissuperuser/userjourney#readme"
+  "homepage": "https://github.com/jarvissuperuser/userjourney#readme",
+  "dependencies": {
+    "fs-extra": "^5.0.0",
+    "node-resemble-js": "^0.2.0"
+  }
 }
