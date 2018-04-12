@@ -15,8 +15,7 @@ var opts = {
         height: "all"
     },
     userAgent: desktopAgent
-};
-var 
+}; 
 
 class UserJourney{
     
@@ -33,9 +32,10 @@ class UserJourney{
         this.project_id;
         this.channelWrapper;
         this.timestamp;
+        this.testLocations;
         this.dbi = new dbl("../app.db");
     }
-    checFilesP(resolve, reject) {
+    checkFilesP(resolve, reject) {
         let parentDir = this.getParentDir(fileName);
         var self = this;
         fs.readdir(parentDir, (err, files) => {
