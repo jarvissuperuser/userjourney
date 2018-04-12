@@ -1,0 +1,23 @@
+{
+  "name": "userjourney",
+  "version": "0.0.1",
+  "description": "modular screen shotting for puppeteer",
+  "main": "userjourney",
+  "scripts": {
+    "test": "npm run test -url \"https://google.com\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jarvissuperuser/userjourney.git"
+  },
+  "keywords": [
+    "userjourney",
+    "testing"
+  ],
+  "author": "Timothy T Mugadza",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/jarvissuperuser/userjourney/issues"
+  },
+  "homepage": "https://github.com/jarvissuperuser/userjourney#readme"
+}
