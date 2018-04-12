@@ -17,7 +17,7 @@ var opts = {
     },
     userAgent: desktopAgent
 }; 
-
+var selfer ;
 class UserJourney{
     
     constructor(options,db){
@@ -35,6 +35,8 @@ class UserJourney{
         this.timestamp;
         this.testLocations;
         this.name;
+        selfer = this;
+        this.log = false;
         this.dbi = new dbl(db?db:"../app.db");
     }
     setup(base_path,projects){
@@ -43,11 +45,9 @@ class UserJourney{
         self.timestamp = moment().format("MM-D-YY-h-mm-s");
         console.log("Loading Tests app at " + self.timestamp);
         self.name = (projects === undefined) ? self.project : projects[p];
-        self.testImg = imgBsPath + project + '/' + self.name + '_' + self.timestamp + '.png';
-        self.pivotImg = imgBsPath + project + '/' + self.name + '.png';
-        self.fileName = (runTests === 'yes') ? self.self.testImg : self.pivotImg;
-        self.filesExist = { test: false, pivot: false };
-        self.QueueName = name + "_" + timestamp;
+        this.filesInit();
+    }
+    dbSetup(){
         self.dbi.multiquery(["insert into test(t_name) values('" + self.name + "')"]);
         self.dbi.e.on('done', () => {
             var d = self.dbi.datamulti[0];
@@ -57,7 +57,13 @@ class UserJourney{
                 });
             });
         });
-        
+    }
+    filesInit(){
+        self.testImg = imgBsPath + project + '/' + self.name + '_' + self.timestamp + '.png';
+        self.pivotImg = imgBsPath + project + '/' + self.name + '.png';
+        self.fileName = (runTests === 'yes') ? self.testImg : self.pivotImg;
+        self.filesExist = { test: false, pivot: false };
+        self.QueueName = self.name + "_" + self.timestamp;
         self.fileName = (self.filesExist.pivot) ?
             imgBsPath + self.project + '/' + self.name + '_' + self.timestamp + '.png' 
             :imgBsPath + self.project + '/' + self.name + '.png';
@@ -65,10 +71,12 @@ class UserJourney{
     }
     genMessage(opt,mismatch){
         var msg; 
+        var self = selfer;
         var insert = "insert into log_info(t_id,log_info,log_image) values(";
         var update = "";
         var pID = (self.project_id===undefined?0:self.project_id); 
         var q= "";
+        var fileFound = self.filesExist.test ? self.testImg : self.pivotImg;
         switch(opt){
             case "readdir":
                 msg = "Test Found "+ (self.filesExist.test?"Test Img":"Pivot Img");
@@ -80,24 +88,31 @@ class UserJourney{
                 q =insert,+ pID+",\""+ msg+"\",\""
                     +self.extractFile(fileFound)+"\")";
                 break ;
-            case "mismatch":
+            case "mismatchY":
                 msg = "Image Difference :" + mismatch +"\%.";
                 q=insert,+ pID+",\""+ msg+"\",\""
                     +self.extractFile(fileFound)+"\")";
                 break ;
+            case "mismatchN":
+                msg = "Image Difference :" + mismatch +"\%.";
+                q=insert,+ pID+",\""+ msg+"\",\""
+                    +self.extractFile(self.diff_img)+"\")";
+                break ;
+
             case "update":
                 msg = "";
-                q=insert,+ pID+",\""+ msg+"\",\""
+                q=update,+ pID+",\""+ msg+"\",\""
                     +self.extractFile(fileFound)+"\")";
                 break ;
             default:
                 break ;
         }
-        this.logToDataBase(q);
+        if (self.log)
+            this.logToDataBase(q);
     }
     checkFilesP(resolve, reject) {
-        let parentDir = this.getParentDir(fileName);
-        var self = this;
+        var self = selfer;
+        let parentDir = self.getParentDir(self.pivotImg);
         fs.readdir(parentDir, (err, files) => {
             if (!err) {
                 console.log("listing files");
@@ -109,25 +124,16 @@ class UserJourney{
                         self.filesExist["test"] = true;
                 });
                 var fileFound = self.filesExist.test ? self.testImg : self.pivotImg;
-                console.log(self.filesExist, extractFile(fileFound),
+                console.log(self.filesExist, self.extractFile(fileFound),
                     "list file .done");
-                // var message = "Test Found "+ (self.filesExist.test?"Test Img":"Pivot Img");
-                // self.logToDataBase("insert into log_info(t_id,log_info,log_image) values("
-                //                 + (self.project_id===undefined?0:self.project_id)+",\""
-                //                 + message+"\",\""
-                //                 +self.extractFile(fileFound)+"\")");
                 self.genMessage("readdir");
                 resolve();
             } else {
-                fs.emptyDir('./public/images/' + self.project + '/', err => {
-                    if (err) {
+                fs.emptyDir(parentDir, err1 => {
+                    if (err1) {
                         console.log("files error", err);
                         //reject(process.exit('0'));
                     }
-                    /*var message = "Project created here";
-                    logToDataBase("insert into log_info(t_id,log_info,log_image) values("
-                                +self.project_id?self.project_id:0+",\""
-                                + message+"\",\""  + 0 +"\")")*/;
                     self.genMessage("emptydir");
                     console.log("Creating Project here", err);
                     resolve();
@@ -179,14 +185,13 @@ class UserJourney{
                     if (data.misMatchPercentage > 5) {
                         console.log("name:" + name + ",datafailed:true", self.diff_img);
                         data.getDiffImage().pack().pipe(fs.createWriteStream(self.diff_img));
-                        self.genMessage("mismatch",data.misMatchPercentage);
+                        self.genMessage("mismatchY",data.misMatchPercentage);
                     } else {
                         console.log("name:" + name + ",datafailed:false");
-                        self.genMessage("mismatch",data.misMatchPercentage);
+                        self.genMessage("mismatchN",data.misMatchPercentage);
                     }
                     self.logToDataBase("update test set t_val='"                    
                         +data.misMatchPercentage + "' where id="+self.project_id+";");
-
                 });
             else
                 throw ("runDiff error");
