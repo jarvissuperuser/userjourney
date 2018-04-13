@@ -1,3 +1,8 @@
+/**
+ * basic unit test
+ * @author Timothy Mugadza<MugadzaT@tisoblackstar.co.za>
+*/
+
 var UjC = require("./userjourney");
 
 var uj = new UjC(undefined,"./test.db");
