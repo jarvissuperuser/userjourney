@@ -30,11 +30,11 @@ class UserJourney{
         this.diff_img = '';
         this.fileName = '';
         this.QueueName = '';
-        this.filesExist = [];
-        this.project_id;
-        this.timestamp;
-        this.testLocations;
-        this.name;
+        this.filesExist = { test: false, pivot: false };
+        this.project_id = 0;
+        this.timestamp = "";
+        this.testLocations = "http://timeslive.co.za";
+        this.name = '';
         selfer = this;
         this.log = false;
         this.dbi = new dbl(db?db:"../app.db");
@@ -48,8 +48,9 @@ class UserJourney{
         this.filesInit();
     }
     dbSetup(){
-        self.dbi.multiquery(["insert into test(t_name) values('" + self.name + "')"]);
-        self.dbi.e.on('done', () => {
+        var self = selfer;
+        this.dbi.multiquery(["insert into test(t_name) values('" + self.name + "')"]);
+        this.dbi.e.on('done', () => {
             var d = self.dbi.datamulti[0];
             self.dbi.db.all("select id from test order by id desc limit 1", (err, rows) => {
                 rows.forEach((row) => {
@@ -58,15 +59,15 @@ class UserJourney{
             });
         });
     }
-    filesInit(){
-        self.testImg = imgBsPath + project + '/' + self.name + '_' + self.timestamp + '.png';
-        self.pivotImg = imgBsPath + project + '/' + self.name + '.png';
-        self.fileName = (runTests === 'yes') ? self.testImg : self.pivotImg;
-        self.filesExist = { test: false, pivot: false };
+    filesInit(imgBsPath){
+        var self = selfer;
+        self.testImg = self.testImg?self.testImg:imgBsPath + project + '/' + self.name + '_' + self.timestamp + '.png';
+        self.pivotImg = self.pivotImg?self.pivotImg:imgBsPath + project + '/' + self.name + '.png';
+        self.fileName = (self.filesExist.pivot) ? self.testImg : self.pivotImg;
+        
         self.QueueName = self.name + "_" + self.timestamp;
-        self.fileName = (self.filesExist.pivot) ?
-            imgBsPath + self.project + '/' + self.name + '_' + self.timestamp + '.png' 
-            :imgBsPath + self.project + '/' + self.name + '.png';
+        self.fileName = (self.filesExist.pivot) ?this.testImg 
+            :this.pivotImg;
         self.diff_img = imgBsPath + self.project + '/' + self.name + '_' + self.timestamp + '_diff.png';
     }
     genMessage(opt,mismatch){
@@ -152,7 +153,7 @@ class UserJourney{
                     console.log(err.trace);
                     reject(err);
                 }
-                console.log("Building test cases", self.QueueName);
+                console.log("Building test cases", self.fileName);
                 resolve();
             });
         } catch (ex) {
