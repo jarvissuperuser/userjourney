@@ -195,9 +195,9 @@ class UserJourney{
                         +data.misMatchPercentage + "' where id="+self.project_id+";");
                 });
             else
-                throw ("runDiff error");
+                throw ("runDiff error ");
         } catch (ex) {
-            console.log(ex, "no file found");
+            console.log(ex, "testfiles not found");
         }
     }
 
