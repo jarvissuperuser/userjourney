@@ -1,7 +1,6 @@
 var fs = require("fs-extra");
 var webshot = require("webshot");
 var resemble = require("node-resemble-js");
-var moment = require("moment");
 var dbl = require('./sqlite_con_man');
 
 const desktopAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36';
@@ -39,13 +38,12 @@ class UserJourney{
         this.log = false;
         this.dbi = new dbl(db?db:"../app.db");
     }
-    setup(base_path,projects){
+    setup(base_path,projects,p){
         var self = this;
         var imgBsPath = base_path?base_path:'./public/images/';
-        self.timestamp = moment().format("MM-D-YY-h-mm-s");
         console.log("Loading Tests app at " + self.timestamp);
         self.name = (projects === undefined) ? self.project : projects[p];
-        this.filesInit();
+        this.filesInit(imgBsPath);
     }
     dbSetup(){
         var self = selfer;
@@ -61,10 +59,9 @@ class UserJourney{
     }
     filesInit(imgBsPath){
         var self = selfer;
-        self.testImg = self.testImg?self.testImg:imgBsPath + project + '/' + self.name + '_' + self.timestamp + '.png';
-        self.pivotImg = self.pivotImg?self.pivotImg:imgBsPath + project + '/' + self.name + '.png';
+        self.testImg = self.testImg?self.testImg:imgBsPath + self.project + '/' + self.name + '_' + self.timestamp + '.png';
+        self.pivotImg = self.pivotImg?self.pivotImg:imgBsPath + self.project + '/' + self.name + '.png';
         self.fileName = (self.filesExist.pivot) ? self.testImg : self.pivotImg;
-        
         self.QueueName = self.name + "_" + self.timestamp;
         self.fileName = (self.filesExist.pivot) ?this.testImg 
             :this.pivotImg;
@@ -116,13 +113,15 @@ class UserJourney{
         let parentDir = self.getParentDir(self.pivotImg);
         fs.readdir(parentDir, (err, files) => {
             if (!err) {
-                console.log("listing files");
+                console.log("listing files >>" ,self.pivotImg, self.testImg);
                 var s = self;
                 files.forEach(file => {
                     if (file === self.extractFile(self.pivotImg))
                         self.filesExist["pivot"] = true;
                     if (file === self.extractFile(self.testImg)) 
                         self.filesExist["test"] = true;
+                    if (!self.log)
+                        console.log(file);
                 });
                 var fileFound = self.filesExist.test ? self.testImg : self.pivotImg;
                 console.log(self.filesExist, self.extractFile(fileFound),
