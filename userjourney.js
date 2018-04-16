@@ -36,19 +36,21 @@ class UserJourney{
         this.name = '';
         selfer = this;
         this.log = false;
-        this.dbi = new dbl(db?db:"../app.db");
+        this.dbi = null;
     }
     setup(base_path,projects,p){
         var self = this;
         var imgBsPath = base_path?base_path:'./public/images/';
         console.log("Loading Tests app at " + self.timestamp);
+        self.project = p;
         self.name = (projects === undefined) ? self.project : projects[p];
         this.filesInit(imgBsPath);
     }
     dbSetup(){
         var self = selfer;
-        this.dbi.multiquery(["insert into test(t_name) values('" + self.name + "')"]);
-        this.dbi.e.on('done', () => {
+        this.dbi = new dbl("../app.db");
+        selfer.dbi.multiquery(["insert into test(t_name) values('" + self.name + "')"]);
+        selfer.dbi.e.on('done', () => {
             var d = self.dbi.datamulti[0];
             self.dbi.db.all("select id from test order by id desc limit 1", (err, rows) => {
                 rows.forEach((row) => {
@@ -78,28 +80,28 @@ class UserJourney{
         switch(opt){
             case "readdir":
                 msg = "Test Found "+ (self.filesExist.test?"Test Img":"Pivot Img");
-                q =insert,+ pID+",\""+ msg+"\",\""
+                q =insert+ pID+",\""+ msg+"\",\""
                     +self.extractFile(fileFound)+"\")";
                 break ;
             case "emptydir":
                 msg = "Project created here"
-                q =insert,+ pID+",\""+ msg+"\",\""
+                q =insert+ pID+",\""+ msg+"\",\""
                     +self.extractFile(fileFound)+"\")";
                 break ;
             case "mismatchY":
                 msg = "Image Difference :" + mismatch +"\%.";
-                q=insert,+ pID+",\""+ msg+"\",\""
-                    +self.extractFile(fileFound)+"\")";
+                q=insert+ pID+",\""+ msg+"\",\""
+                    +self.extractFile(self.diff_img)+"\")";
                 break ;
             case "mismatchN":
                 msg = "Image Difference :" + mismatch +"\%.";
-                q=insert,+ pID+",\""+ msg+"\",\""
-                    +self.extractFile(self.diff_img)+"\")";
+                q=insert+ pID+",\""+ msg+"\",\""
+                    +self.extractFile(fileFound)+"\")";
                 break ;
 
             case "update":
                 msg = "";
-                q=update,+ pID+",\""+ msg+"\",\""
+                q=update+ pID+",\""+ msg+"\",\""
                     +self.extractFile(fileFound)+"\")";
                 break ;
             default:
@@ -201,14 +203,15 @@ class UserJourney{
     }
 
     logToDataBase (qry) {
+        var self = selfer;
         try{
             if (this.project_id !== 0)
-                dbi.db.all(qry, function(err, row) {
+                selfer.dbi.db.all(qry, function(err, row) {
                     if (err){
                         console.log(err,qry,"logToDb Failed");
                     }
                     else
-                        console.log(dbi.db.lastID,"log in to db");
+                        console.log(qry,"log in to db");
                 });
             else{
                             console.log('no project_id');
